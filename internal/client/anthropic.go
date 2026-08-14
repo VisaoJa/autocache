@@ -366,6 +366,7 @@ func shouldSkipHeader(header string) bool {
 		"te":                true,
 		"trailer":           true,
 		"host":              true,
+		"accept-encoding":   true,
 	}
 
 	return skipHeaders[strings.ToLower(header)]
