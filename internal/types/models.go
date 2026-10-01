@@ -28,6 +28,15 @@ type ContentBlock struct {
 	ToolUseID string      `json:"tool_use_id,omitempty"`
 	Content   interface{} `json:"content,omitempty"`
 	IsError   *bool       `json:"is_error,omitempty"`
+	
+	// For thinking blocks (extended/adaptive thinking). Must round-trip INTACT:
+	// the API rejects a resent thinking block without "thinking" or "signature".
+	// Pointer so that an EMPTY thinking ("") is preserved. (VisaoJa fix 01/10/2026)
+	Thinking  *string `json:"thinking,omitempty"`
+	Signature string  `json:"signature,omitempty"`
+
+	// For redacted_thinking blocks
+	Data string `json:"data,omitempty"`
 }
 
 // ImageSource represents an image source
