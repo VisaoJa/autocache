@@ -33,6 +33,7 @@ type AutocacheHandler struct {
 	historyMutex   sync.RWMutex
 	panicCount     atomic.Uint64
 	lastPanicTime  atomic.Int64
+	toolInputs     *cache.ToolInputStore
 }
 
 // NewAutocacheHandler creates a new handler
@@ -46,6 +47,7 @@ func NewAutocacheHandler(cfg *config.Config, logger *logrus.Logger, version stri
 		logger:         logger,
 		version:        version,
 		requestHistory: make([]types.CacheMetadata, 0, cfg.SavingsHistorySize),
+		toolInputs:     cache.NewToolInputStore(),
 	}
 }
 
@@ -99,6 +101,16 @@ func (ah *AutocacheHandler) HandleMessages(w http.ResponseWriter, r *http.Reques
 	// Log request summary
 	ah.proxyClient.LogRequestSummary(&req)
 
+	// VisaoJa: auditoria/reparo do input dos tool_use reenviados vazios pelo n8n
+	if audit := ah.toolInputs.Repair(&req, cache.ToolInputRepairEnabled()); audit.ToolUses > 0 {
+		ah.logger.WithFields(logrus.Fields{
+			"tool_uses": audit.ToolUses,
+			"empty":     audit.Empty,
+			"known":     audit.Known,
+			"repaired":  audit.Repaired,
+		}).Info("tool_use input audit")
+	}
+
 	// Check if caching should be bypassed
 	if ah.shouldBypassCaching(r) {
 		ah.logger.Info("Bypassing cache injection due to header")
@@ -137,7 +149,10 @@ func (ah *AutocacheHandler) handleNonStreamingRequest(w http.ResponseWriter, r *
 	}
 
 	// Read and parse response
-	_, responseBody, err := ah.proxyClient.ReadAndParseResponse(resp)
+	parsedResp, responseBody, err := ah.proxyClient.ReadAndParseResponse(resp)
+	if err == nil {
+		ah.toolInputs.Remember(parsedResp)
+	}
 	if err != nil {
 		ah.logger.WithError(err).Error("Failed to read response")
 		// Forward the error response as-is
