@@ -137,6 +137,16 @@ func (ci *CacheInjector) InjectCacheControl(req *types.AnthropicRequest) (*types
 	// Apply cache control to selected candidates
 	breakpoints := ci.ApplyCacheControl(candidates)
 
+	// VisaoJa 07/10/2026: ponto de cache no fim do histórico (ver conversation.go)
+	// Só em pedidos que já cachearam system/tools (agentes com prompt grande);
+	// pedidos pequenos seguem exatamente como antes.
+	if len(breakpoints) > 0 {
+		if bp, ok := ApplyConversationBreakpoint(req); ok {
+			breakpoints = append(breakpoints, bp)
+			ci.logger.WithField("approx_tokens", bp.Tokens).Debug("Applied conversation cache breakpoint")
+		}
+	}
+
 	// Calculate metadata
 	metadata := ci.calculateMetadata(req, breakpoints, startTime)
 
