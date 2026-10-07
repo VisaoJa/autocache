@@ -22,6 +22,9 @@ func TestNewCacheInjector(t *testing.T) {
 }
 
 func TestInjectCacheControl(t *testing.T) {
+	// VisaoJa 07/10/2026: estes casos validam o comportamento original (sem o
+	// breakpoint de conversa, que tem testes próprios em conversation_test.go).
+	t.Setenv("CACHE_CONVERSATION", "false")
 	logger := logrus.New()
 	logger.SetLevel(logrus.ErrorLevel)
 
